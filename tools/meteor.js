@@ -185,7 +185,7 @@ Fiber(function () {
       // reparse args
       // This help logic should probably move to run.js eventually
       var opt = require('optimist')
-            .alias('port', 'p').default('port', 3000)
+            .alias('port', 'p').default('port', process.env.PORT || 3000)
             .describe('port', 'Port to listen on. NOTE: Also uses port N+1 and N+2.')
             .boolean('production')
             .describe('production', 'Run in production mode. Minify and bundle CSS and JS files.')

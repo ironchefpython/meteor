@@ -100,7 +100,7 @@ var request_queue = [];
 // calls callback once proxy is actively listening on outer and
 // proxying to inner.
 
-var start_proxy = function (outer_port, inner_port, callback) {
+var start_proxy = function (proxy_ip, outer_port, inner_port, callback) {
   callback = callback || function () {};
 
   var p = httpProxy.createServer(function (req, res, proxy) {
@@ -125,14 +125,14 @@ var start_proxy = function (outer_port, inner_port, callback) {
     } else if (Status.listening) {
       // server is listening. things are hunky dory!
       proxy.proxyRequest(req, res, {
-        host: '127.0.0.1', port: inner_port
+        host: proxy_ip, port: inner_port
       });
     } else {
       // Not listening yet. Queue up request.
       var buffer = httpProxy.buffer(req);
       request_queue.push(function () {
         proxy.proxyRequest(req, res, {
-          host: '127.0.0.1', port: inner_port,
+          host: proxy_ip, port: inner_port,
           buffer: buffer
         });
       });
@@ -144,14 +144,14 @@ var start_proxy = function (outer_port, inner_port, callback) {
     if (Status.listening) {
       // server is listening. things are hunky dory!
       p.proxy.proxyWebSocketRequest(req, socket, head, {
-        host: '127.0.0.1', port: inner_port
+        host: proxy_ip, port: inner_port
       });
     } else {
       // Not listening yet. Queue up request.
       var buffer = httpProxy.buffer(req);
       request_queue.push(function () {
         p.proxy.proxyWebSocketRequest(req, socket, head, {
-          host: '127.0.0.1', port: inner_port,
+          host: proxy_ip, port: inner_port,
           buffer: buffer
         });
       });
@@ -582,13 +582,15 @@ exports.getSettings = function (filename) {
 // context is as created in meteor.js.
 // options include: port, minify, once, settingsFile, testPackages
 exports.run = function (context, options) {
-  var outer_port = options.port || 3000;
-  var inner_port = outer_port + 1;
-  var mongo_port = outer_port + 2;
+  var outer_port = options.port || process.env.PORT || 3000;
+  var inner_port = 16010;
+  var mongo_port = 16000;
+  var mongo_ip = process.env.IP || "127.0.0.1";
+  var proxy_ip = process.env.IP || "127.0.0.1";
   var bundle_path = path.join(context.appDir, '.meteor', 'local', 'build');
   // Allow override and use of external mongo. Matches code in launch_mongo.
   var mongo_url = process.env.MONGO_URL ||
-        ("mongodb://127.0.0.1:" + mongo_port + "/meteor");
+        ("mongodb://" + mongo_ip + ":" + mongo_port + "/meteor");
   var firstRun = true;
 
   var deps_info = null;
@@ -733,7 +735,7 @@ exports.run = function (context, options) {
     Status.running = true;
 
     if (firstRun) {
-      process.stdout.write("=> Meteor server running on: http://localhost:" + outer_port + "/\n");
+      process.stdout.write("=> Meteor server running on: http://" + proxy_ip + ":" + outer_port + "/\n");
       firstRun = false;
       lastThingThatPrintedWasRestartMessage = false;
     } else {
@@ -782,6 +784,7 @@ exports.run = function (context, options) {
   var launch = function () {
     Status.mongoHandle = mongo_runner.launch_mongo(
       context.appDir,
+      mongo_ip,
       mongo_port,
       function () { // On Mongo startup complete
         // don't print mongo startup is slow warning.
@@ -822,7 +825,7 @@ exports.run = function (context, options) {
       });
   };
 
-  start_proxy(outer_port, inner_port, function () {
+  start_proxy(proxy_ip, outer_port, inner_port, function () {
     process.stdout.write("[[[[[ " + files.pretty_path(context.appDir) + " ]]]]]\n\n");
 
     mongo_startup_print_timer = setTimeout(function () {
