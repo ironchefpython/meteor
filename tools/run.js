@@ -183,7 +183,7 @@ var start_proxy = function (proxy_ip, outer_port, inner_port, callback) {
     res.end('Unexpected error.');
   });
 
-  p.listen(outer_port, callback);
+  p.listen(outer_port, proxy_ip, callback);
 };
 
 ////////// MongoDB //////////
@@ -232,7 +232,8 @@ var start_server = function (options) {
 
   env.PORT = options.innerPort;
   env.MONGO_URL = options.mongoURL;
-  env.ROOT_URL = env.ROOT_URL || ('http://localhost:' + options.outerPort);
+  var localhost = process.env.IP || 'localhost';
+  env.ROOT_URL = env.ROOT_URL || ('http://' + localhost + ':' + options.outerPort);
   if (options.settingsFile) {
     // Re-read the settings file each time we call start_server.
     var settings = exports.getSettings(options.settingsFile);

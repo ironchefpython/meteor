@@ -156,7 +156,7 @@ exports.launch_mongo = function (app_dir, ip, port, launch_callback, on_exit_cal
       launch_callback({reason: "Can't kill running mongo: " + err.reason});
       return;
     }
-    process.stderr.write("spawning mongo on " + ip + ":" + port);
+    
     var proc = child_process.spawn(mongod_path, [
       '--bind_ip', ip,
       '--smallfiles',
